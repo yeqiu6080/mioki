@@ -496,6 +496,15 @@ export interface Group {
   group_name: string
   /** 群签到 */
   doSign: () => Promise<string>
+  /** 获取群信息 */
+  getInfo: () => Promise<{
+    group_all_shut: number
+    group_remark: string
+    group_id: number
+    group_name: string
+    member_count: number
+    max_member_count: number
+  }>
   /** 获取群成员列表 */
   getMemberList: () => Promise<any>
   /** 获取群成员信息 */
@@ -516,6 +525,8 @@ export interface Group {
   sendMsg: SendMsg
 }
 
+export type GroupWithInfo = Group & Awaited<ReturnType<Group['getInfo']>>
+
 /**
  * 好友信息接口
  * @description 包含好友的基本信息和常用操作方法
@@ -529,7 +540,94 @@ export interface Friend {
   sendMsg: SendMsg
   /** 删除好友 */
   delete: (block?: boolean, both?: boolean) => Promise<any>
+  /** 获取好友信息 */
+  getInfo: () => Promise<{
+    uid: string
+    uin: string
+    nick: string
+    remark: string
+    constellation: number
+    shengXiao: number
+    kBloodType: number
+    homeTown: string
+    makeFriendCareer: number
+    pos: string
+    college: string
+    country: string
+    province: string
+    city: string
+    postCode: string
+    address: string
+    regTime: number
+    interest: string
+    labels: string[]
+    qqLevel: number
+    qid: string
+    longNick: string
+    birthday_year: number
+    birthday_month: number
+    birthday_day: number
+    age: number
+    sex: string
+    eMail: string
+    phoneNum: string
+    categoryId: number
+    richTime: number
+    richBuffer: {}
+    topTime: string
+    isBlock: boolean
+    isMsgDisturb: boolean
+    isSpecialCareOpen: boolean
+    isSpecialCareZone: boolean
+    ringId: string
+    isBlocked: boolean
+    recommendImgFlag: number
+    disableEmojiShortCuts: number
+    qidianMasterFlag: number
+    qidianCrewFlag: number
+    qidianCrewFlag2: number
+    isHideQQLevel: number
+    isHidePrivilegeIcon: number
+    status: number
+    extStatus: number
+    batteryStatus: number
+    termType: number
+    netType: number
+    iconType: number
+    customStatus: null | string
+    setTime: string
+    specialFlag: number
+    abiFlag: number
+    eNetworkType: number
+    showName: string
+    termDesc: string
+    musicInfo: {
+      buf: {}
+    }
+    extOnlineBusinessInfo: {
+      buf: {}
+      customStatus: null
+      videoBizInfo: {
+        cid: string
+        tvUrl: string
+        synchType: string
+      }
+      videoInfo: {
+        name: string
+      }
+    }
+    user_id: number
+    nickname: string
+    long_nick: string
+    reg_time: number
+    is_vip: boolean
+    is_years_vip: boolean
+    vip_level: number
+    login_days: number
+  }>
 }
+
+export type FriendWithInfo = Friend & Awaited<ReturnType<Friend['getInfo']>>
 
 // ==================== 消息事件类型 ====================
 

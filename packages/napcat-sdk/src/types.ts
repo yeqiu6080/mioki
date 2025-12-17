@@ -2,10 +2,15 @@ import type { Logger } from './logger'
 import type { OneBotEventMap } from './onebot'
 
 export interface MiokiOptions {
-  protocol?: 'ws' | 'wss'
-  host?: string
-  port?: number
+  /** NapCat 访问令牌 */
   token: string
+  /** NapCat 服务器协议，默认为 ws */
+  protocol?: 'ws' | 'wss'
+  /** NapCat 服务器主机，默认为 localhost */
+  host?: string
+  /** NapCat 服务器端口，默认为 3333 */
+  port?: number
+  /** 日志记录器，默认为控制台日志记录器 */
   logger?: Logger
 }
 

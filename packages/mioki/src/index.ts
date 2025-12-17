@@ -6,11 +6,14 @@ const napcat = new NapCat({
   token: 'cdc93b212524c0c0a0a162f1edec347a',
 })
 
-napcat.on('ws.open', () => {
+napcat.on('ws.open', async () => {
   console.log('ws opened')
-})
+  const group = await napcat.pickGroup(608391254)
+  console.log('group info:', group)
 
-let remove: ((...rest: any[]) => any) | undefined
+  const friend = await napcat.pickFriend(1141284758)
+  console.log('friend info:', friend)
+})
 
 napcat.on('message.group', async (e) => {
   console.log('[message]', JSON.stringify(e))
@@ -20,12 +23,7 @@ napcat.on('message.group', async (e) => {
   }
 
   if (e.raw_message === 'reaction') {
-    remove = e.delReaction
     return e.addReaction('66')
-  }
-
-  if (e.raw_message === 'remove reaction') {
-    return await remove?.('66')
   }
 
   if (e.raw_message === 'recall') {

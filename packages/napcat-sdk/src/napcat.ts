@@ -11,8 +11,10 @@ import type { EventMap, MiokiOptions, OptionalProps } from './types'
 import type {
   API,
   Friend,
+  FriendWithInfo,
   Group,
   GroupMessageEvent,
+  GroupWithInfo,
   NormalizedElementToSend,
   PrivateMessageEvent,
   Sendable,
@@ -31,12 +33,16 @@ export const DEFAULT_NAPCAT_OPTIONS = {
 } satisfies Required<OptionalProps<MiokiOptions>>
 
 export class NapCat {
+  /** WebSocket 实例 */
   #ws: WebSocket | null = null
+  /** 事件发射器 */
   #event: Emitter<EventMap & Record<string | symbol, unknown>> = mitt()
+  /** Echo 事件发射器 */
   #echoEvent: Emitter<Record<string, unknown>> = mitt()
 
   constructor(private readonly options: MiokiOptions) {}
 
+  /** 配置项 */
   get #config(): Required<MiokiOptions> {
     return {
       protocol: this.options.protocol || DEFAULT_NAPCAT_OPTIONS.protocol,
@@ -47,6 +53,7 @@ export class NapCat {
     }
   }
 
+  /** WebSocket 实例 */
   get ws(): WebSocket {
     if (!this.#ws) {
       this.logger.error('WebSocket is not connected.')
@@ -56,22 +63,27 @@ export class NapCat {
     return this.#ws
   }
 
+  /** 日志记录器 */
   get logger(): Logger {
     return this.#config.logger
   }
 
+  /** 消息段构建器 */
   get segment(): typeof segment {
     return segment
   }
 
+  /** 生成唯一的 echo ID */
   #echoId() {
     return crypto.randomBytes(16).toString('hex')
   }
 
+  /** 构建 WebSocket 连接地址 */
   #buildWsUrl(): string {
     return `${this.#config.protocol}://${this.#config.host}:${this.#config.port}?access_token=${this.#config.token}`
   }
 
+  /** 包装回复消息 */
   #wrapReply(sendable: Sendable | Sendable[], message_id?: number, reply?: boolean): Sendable[] {
     const sendableList = typeof sendable === 'string' ? [sendable] : [sendable].flat()
 
@@ -82,6 +94,7 @@ export class NapCat {
     return sendableList
   }
 
+  /** 确保 WebSocket 已连接 */
   #ensureWsConnection(ws: WebSocket | null): asserts ws is WebSocket {
     if (!ws) {
       this.logger.error('WebSocket is not connected.')
@@ -94,6 +107,7 @@ export class NapCat {
     }
   }
 
+  /** 标准化可发送消息元素 */
   #normalizeSendable(msg: Sendable | Sendable[]): NormalizedElementToSend[] {
     return [msg].flat(2).map((item) => {
       if (typeof item === 'string') {
@@ -107,6 +121,7 @@ export class NapCat {
     })
   }
 
+  /** 等待服务器响应操作 */
   #waitForAction<T extends any>(echoId: string) {
     const eventName = `echo#${echoId}`
 
@@ -127,11 +142,14 @@ export class NapCat {
     })
   }
 
-  #buildGroup(group_id: number, group_name: string = ''): Group {
+  /** 构建群对象 */
+  #buildGroup<T extends object>(group_id: number, group_name: string = '', extraInfo: T = {} as T): Group & T {
     return {
+      ...extraInfo,
       group_id,
       group_name,
       doSign: () => this.api('set_group_sign', { group_id }),
+      getInfo: () => this.api('get_group_info', { group_id }),
       getMemberList: async () => this.api('get_group_member_list', { group_id }),
       getMemberInfo: (user_id: number) => this.api('get_group_member_info', { group_id, user_id }),
       setTitle: (title: string) => this.api('set_group_special_title', { group_id, title }),
@@ -144,16 +162,20 @@ export class NapCat {
     }
   }
 
-  #buildFriend(user_id: number, nickname: string = ''): Friend {
+  /** 构建好友对象 */
+  #buildFriend<T extends object>(user_id: number, nickname: string = '', extraInfo: T = {} as T): Friend & T {
     return {
+      ...extraInfo,
       user_id,
       nickname,
       delete: (block?: boolean, both?: boolean) =>
         this.api('delete_friend', { user_id, temp_block: block, temp_both_del: both }),
       sendMsg: (sendable: Sendable | Sendable[]) => this.sendPrivateMsg(user_id, sendable),
+      getInfo: () => this.api('get_stranger_info', { user_id }),
     }
   }
 
+  /** 构建群消息事件 */
   #buildPrivateMessageEvent(event: PrivateMessageEvent) {
     return {
       ...event,
@@ -165,6 +187,7 @@ export class NapCat {
     }
   }
 
+  /** 构建群消息事件对象 */
   #buildGroupMessageEvent(event: GroupMessageEvent) {
     return {
       ...event,
@@ -182,6 +205,7 @@ export class NapCat {
     }
   }
 
+  /** 绑定内部事件处理器 */
   #bindInternalEvents(data: any) {
     if (data.echo) {
       this.#echoEvent.emit(`echo#${data.echo}`, data)
@@ -336,14 +360,16 @@ export class NapCat {
     }
   }
 
-  async pickGroup(group_id: number): Promise<Group> {
-    const groupInfo = await this.api<{ group_name: string }>('get_group_info', { group_id })
-    return this.#buildGroup(group_id, groupInfo.group_name)
+  /** 获取一个群的信息，可以用于发送群消息等操作 */
+  async pickGroup(group_id: number): Promise<GroupWithInfo> {
+    const groupInfo = await this.api<ReturnType<Group['getInfo']>>('get_group_info', { group_id })
+    return this.#buildGroup(group_id, groupInfo.group_name, groupInfo)
   }
 
-  async pickFriend(user_id: number): Promise<Friend> {
-    const friendInfo = await this.api<{ nickname: string }>('get_stranger_info', { user_id, no_cache: true })
-    return this.#buildFriend(user_id, friendInfo.nickname)
+  /** 获取一个好友的信息，可以用于发送私聊消息等操作 */
+  async pickFriend(user_id: number): Promise<FriendWithInfo> {
+    const friendInfo = await this.api<ReturnType<Friend['getInfo']>>('get_stranger_info', { user_id })
+    return this.#buildFriend(user_id, friendInfo.nickname, friendInfo)
   }
 
   /**
@@ -407,6 +433,7 @@ export class NapCat {
     })
   }
 
+  /** 启动 NapCat SDK 实例，建立 WebSocket 连接 */
   async bootstrap() {
     const { logger: _, ...config } = this.#config
 
@@ -456,6 +483,7 @@ export class NapCat {
     })
   }
 
+  /** 销毁 NapCat SDK 实例，关闭 WebSocket 连接 */
   async destroy() {
     if (this.#ws) {
       this.logger.info('destroying NapCat SDK instance...')
