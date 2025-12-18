@@ -1068,7 +1068,15 @@ export type RequestEventBase<T extends string, U extends object> = EventBase<
 >
 
 /** 好友添加请求事件 */
-export type FriendRequestEvent = RequestEventBase<'friend', {}>
+export type FriendRequestEvent = RequestEventBase<
+  'friend',
+  {
+    /** 同意添加好友请求的方法 */
+    approve: () => Promise<void>
+    /** 拒绝添加好友请求的方法 */
+    reject: (reason?: string) => Promise<void>
+  }
+>
 
 /** 加群请求事件（他人申请加入群） */
 export type GroupAddRequestEvent = RequestEventBase<
@@ -1078,6 +1086,10 @@ export type GroupAddRequestEvent = RequestEventBase<
     group_id: number
     /** 请求子类型：add-主动加群 */
     sub_type: 'add'
+    /** 同意群请求的方法 */
+    approve: () => Promise<void>
+    /** 拒绝群请求的方法 */
+    reject: (reason?: string) => Promise<void>
   }
 >
 

@@ -399,8 +399,9 @@ export class NapCat {
           this.logger.trace(`received request: ${JSON.stringify(data)}`)
 
           if (data.request_type === 'friend') {
-            data.reject = () => this.api('set_friend_request', { flag: data.flag, approve: false })
-            data.approve = () => this.api('set_friend_request', { flag: data.flag, approve: true })
+            data.reject = (reason?: string) =>
+              this.api('set_friend_add_request', { flag: data.flag, approve: false, reason })
+            data.approve = () => this.api('set_friend_add_request', { flag: data.flag, approve: true })
           }
 
           if (data.request_type === 'group') {
