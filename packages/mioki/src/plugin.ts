@@ -3,18 +3,18 @@ import path from 'node:path'
 import nodeCron from 'node-cron'
 import { hrtime } from 'node:process'
 
-import * as servicesExports from './services'
-import * as configExports from './config'
 import * as utilsExports from './utils'
+import * as configExports from './config'
+import * as servicesExports from './services'
 
-import type { ScheduledTask, TaskContext } from 'node-cron'
 import type { EventMap, NapCat } from 'napcat-sdk'
+import type { ScheduledTask, TaskContext } from 'node-cron'
 
 type Num = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
-type Services = typeof servicesExports
-type Configs = typeof configExports
 type Utils = typeof utilsExports
+type Configs = typeof configExports
+type Services = typeof servicesExports
 
 /**
  * Mioki 上下文对象，包含 Mioki 运行时的信息和方法
@@ -93,9 +93,9 @@ export async function enablePlugin(
     const context: MiokiContext = {
       bot,
       segment: bot.segment,
-      services: servicesExports.services,
       ...utilsExports,
       ...configExports,
+      services: servicesExports.services,
       clears: userClears,
       addService: (name: string, service: any, cover?: boolean) => {
         const removeService = servicesExports.addService(name, service, cover)

@@ -2,27 +2,6 @@ import path from 'node:path'
 import { dayjs, isNumber, unique } from './utils'
 
 /**
- * OneBot 11 正向 WebSocket 配置
- */
-export interface Onebot11ForwardWebSocketConfig {
-  /** 连接类型 */
-  type: 'ws'
-  /** WebSocket 服务器监听 IP */
-  host?: string
-  /** WebSocket 服务器监听端口 */
-  port?: number
-  /** 访问令牌 */
-  access_token?: string
-  /** 心跳配置 */
-  heartbeat?: {
-    /** 是否启用 */
-    enable?: boolean
-    /** 心跳间隔 */
-    interval?: number
-  }
-}
-
-/**
  * mioki 配置
  */
 export interface MiokiConfig {
