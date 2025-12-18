@@ -1,5 +1,5 @@
-import cmd from './cmd'
+import core from './core'
 
 import type { MiokiPlugin } from '../plugin'
 
-export const BUILTIN_PLUGINS: MiokiPlugin[] = [cmd]
+export const BUILTIN_PLUGINS: MiokiPlugin[] = [core]

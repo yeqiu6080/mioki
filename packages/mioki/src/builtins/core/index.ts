@@ -9,15 +9,15 @@ import { getMiokiStatus, MiokiStatus, getMiokiStatusStr } from './status'
 import { BOT_CWD, botConfig, updateBotConfig } from '../../config'
 import { definePlugin, enablePlugin, findLocalPlugins, runtimePlugins, type MiokiPlugin } from '../../plugin'
 
-const corePlugins = ['mioki-cmd']
+const corePlugins = ['mioki-core']
 
-export interface MiokiCmdServiceContrib {
+export interface MiokiCoreServiceContrib {
   /** 获取框架和系统的实时状态 */
   getMiokiStatus(): Promise<MiokiStatus>
 }
 
-const cmd: MiokiPlugin = definePlugin({
-  name: 'kivi-cmd',
+const core: MiokiPlugin = definePlugin({
+  name: 'mioki-core',
   version,
   priority: 1,
   setup(ctx) {
@@ -370,4 +370,4 @@ const cmd: MiokiPlugin = definePlugin({
   },
 })
 
-export default cmd
+export default core

@@ -1,6 +1,6 @@
-import type { MiokiCmdServiceContrib } from './builtins/cmd'
+import type { MiokiCoreServiceContrib } from './builtins/core'
 
-export interface MiokiServices extends Record<string, unknown>, MiokiCmdServiceContrib {}
+export interface MiokiServices extends Record<string, unknown>, MiokiCoreServiceContrib {}
 
 const USER_SERVICE: MiokiServices = {} as MiokiServices
 
