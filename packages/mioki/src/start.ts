@@ -29,11 +29,12 @@ export async function start(options: StartOptions = {}): Promise<void> {
   const logger = getMiokiLogger(cfg.botConfig.log_level || 'info')
   const plugin_dir = getAbsPluginDir()
 
-  logger.info(`>>> 〓 ${colors.bold(colors.cyan('mioki'))} ${colors.bold(colors.green(`v${version}`))} 〓`)
+  logger.info(`>>> -> ${colors.bold(colors.cyan('mioki'))} ${colors.bold(colors.green(`v${version}`))} <-`)
   logger.info(`>>> ${colors.yellow(colors.underline(`基于 NapCat 的 TypeScript 🤖️ 机器人框架。`))}`)
-  logger.info(`>>> ${colors.yellow(colors.underline(`作者: Viki <hi@viki.moe> (https://github.com/vikiboss)`))}`)
-  logger.info(`>>> ${colors.yellow(colors.underline(`协议: Licensed under MIT License.`))}`)
-  logger.info(`>>> ${colors.cyan(colors.underline(`GitHub: http://github.com/vikiboss/mioki`))}`)
+  logger.info(`>>> ${colors.italic(`作者: Viki <hi@viki.moe> (https://github.com/vikiboss)`)}`)
+  logger.info(`>>> ${colors.italic(`协议: Licensed under MIT License.`)}`)
+  logger.info(`>>> ${colors.cyan(`GitHub: https://github.com/vikiboss/mioki`)}`)
+  logger.info('>>> ----------------------------------------')
   logger.info(`>>> 工作目录: ${colors.bold(colors.blue(cfg.BOT_CWD.value))}`)
   logger.info(`>>> 插件目录: ${colors.bold(colors.blue(plugin_dir))}`)
 
