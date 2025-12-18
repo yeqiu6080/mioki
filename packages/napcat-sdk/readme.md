@@ -1,44 +1,10 @@
-# mioki
+# NapCat SDK for TypeScript
 
-A simple NapCat OneBot v11 framework.
-
-> [!CAUTION]
-> This project is still under active development. Use it at your own risk.
-
-## Usage of mioki
-
-### 1. Deploy a NapCat Instance
-
-It forwards port 3001 to 3333, mioki use `3333` as default port to connect NapCat WebSocket server.
-
-```bash
-docker run -d \
-  -e NAPCAT_GID=$(id -g) \
-  -e NAPCAT_UID=$(id -u) \
-  -p 3333:3001 \
-  -p 6099:6099 \
-  --name napcat \
-  --restart=always \
-  mlikiowa/napcat-docker:latest
-```
-
-> PS: The image is 500+ MB, so it may take some time to download.
-
-Visit http://localhost:6099, and navigate to "Network Settings" to add a new WebSocket server, using the `3001` port and `0.0.0.0` host in docker. Make sure to enable it after adding. Keep the token you set here, you'll need it to connect mioki to NapCat.
-
-<img src="./docs/napcat-ws-config.png" alt="napcat-websocket" style="max-width: 300px; border-radius: 4px;" />
-
-#### 2. WIP...
-
-> To be continued...
-
-## Usage of NapCat SDK for TypeScript
-
-### Getting Started
+## Getting Started
 
 The NapCat SDK for TypeScript allows developers to easily integrate NapCat's functionalities into their TypeScript applications. This SDK provides a set of tools and utilities to interact with NapCat services seamlessly.
 
-### Installation
+## Installation
 
 You can install the NapCat SDK via npm. Run the following command in your terminal:
 
@@ -46,7 +12,7 @@ You can install the NapCat SDK via npm. Run the following command in your termin
 pnpm install napcat-sdk
 ```
 
-### Quick Start
+## Quick Start
 
 To connect to NapCat, you need to create an instance of the NapCat client. Here's a simple example:
 

@@ -5,6 +5,7 @@ const napcat = new NapCat({
   token: 'cdc93b212524c0c0a0a162f1edec347a',
 })
 
+
 napcat.on('ws.open', async () => {
   console.log('ws opened')
   const group = await napcat.pickGroup(608391254)
