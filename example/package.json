@@ -15,6 +15,7 @@
     ],
     "admins": [],
     "plugins": [
+      "like",
       "test"
     ],
     "log_level": "info",
