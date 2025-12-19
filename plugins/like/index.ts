@@ -1,7 +1,7 @@
 import { definePlugin } from 'mioki'
 
 export default definePlugin({
-  name: '赞我',
+  name: 'like',
   version: '1.0.0',
   async setup(ctx) {
     ctx.handle('message.group', async (event) => {
