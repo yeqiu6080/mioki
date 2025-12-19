@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import util from 'node:util'
 import path from 'node:path'
 import { dayjs } from './utils'
 import { BOT_CWD, botConfig } from './config'
@@ -43,7 +44,14 @@ export function getMiokiLogger(level: LogLevel): Logger {
     reporters: [
       {
         log: (logObj) => {
-          const message = stripAnsi(logObj.message || logObj.args?.join(' ') || '')
+          const message = stripAnsi(
+            logObj.message ||
+              logObj.args
+                ?.map((e) => (typeof e === 'string' ? e : util.inspect(e, { colors: true, depth: null })))
+                .join(' ') ||
+              '',
+          )
+
           const prefix = `[${logObj.date.toISOString()}] [${LEVEL_MAP[logObj.level].name}] ${logObj.tag ? `[${logObj.tag}] ` : ''}`
           const line = `${prefix}${message}`
           fs.appendFileSync(logFile, line + '\n')
@@ -54,7 +62,13 @@ export function getMiokiLogger(level: LogLevel): Logger {
           const time = colors.gray(`[${logObj.date.toLocaleTimeString('zh-CN')}]`)
           const level = colors.bold(colors[LEVEL_MAP[logObj.level].color](LEVEL_MAP[logObj.level].name))
           const tag = logObj.tag ? colors.dim(`[${logObj.tag}] `) : ''
-          const message = logObj.message || logObj.args?.join(' ') || ''
+
+          const message =
+            logObj.message ||
+            logObj.args
+              ?.map((e) => (typeof e === 'string' ? e : util.inspect(e, { colors: true, depth: null })))
+              .join(' ') ||
+            ''
 
           const line = `${time} ${level} ${tag} ${message}`
 

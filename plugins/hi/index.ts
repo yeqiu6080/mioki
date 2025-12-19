@@ -8,6 +8,9 @@ export default definePlugin({
   async setup(ctx) {
     // ctx.logger.info(`bot: ${ctx.bot.uin}, ${ctx.bot.nickname}`)
 
+    const res = await ctx.bot.getGroupMemberInfo(608391254, 715785945)
+    ctx.logger.info('group member info:', JSON.stringify(res))
+
     ctx.handle('notice', async (e) => {
       ctx.logger.info(`received a notice: ${JSON.stringify(e)}`)
     })
@@ -17,7 +20,7 @@ export default definePlugin({
       await e.approve()
     })
 
-    ctx.handle('message.group', async (e) => {
+    ctx.handle('message', async (e) => {
       if (e.raw_message === 'hi') {
         await e.reply('hi from plugin!')
       }

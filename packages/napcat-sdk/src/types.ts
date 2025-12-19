@@ -1,7 +1,16 @@
 import type { Logger } from './logger'
 import type { NapCat } from './napcat'
 
-export interface MiokiOptions {
+export interface Stat {
+  /** 启动时间，Unix 时间戳（毫秒） */
+  start_time: number
+  /** 已接受消息数 */
+  recv: { group: number; private: number }
+  /** 已发送消息数 */
+  send: { group: number; private: number }
+}
+
+export interface NapcatOptions {
   /** NapCat 访问令牌 */
   token: string
   /** NapCat 服务器协议，默认为 ws */
@@ -542,7 +551,7 @@ export interface Group {
   /** NapCat 实例 */
   napcat: NapCat
   /** 群签到 */
-  doSign: () => Promise<string>
+  sign: () => Promise<string>
   /** 获取群信息 */
   getInfo: () => Promise<{
     group_all_shut: number
@@ -553,21 +562,21 @@ export interface Group {
     max_member_count: number
   }>
   /** 获取群成员列表 */
-  getMemberList: () => Promise<any>
+  getMemberList: () => Promise<GroupMemberInfo[]>
   /** 获取群成员信息 */
-  getMemberInfo: (user_id: number) => Promise<any>
+  getMemberInfo: (user_id: number) => Promise<GroupMemberInfo>
   /** 设置群头衔 */
-  setTitle: (title: string) => Promise<any>
+  setTitle: (user_id: number, title: string) => Promise<any>
   /** 设置群名片 */
   setCard: (user_id: number, card: string) => Promise<any>
-  /** 添加群精华消息 */
-  addEssence: (message_id: string) => Promise<any>
-  /** 删除群精华消息 */
-  delEssence: (message_id: string) => Promise<any>
+  /** 设置群精华消息 */
+  setEssence: (message_id: number) => Promise<any>
+  /** 移除群精华消息 */
+  delEssence: (message_id: number) => Promise<any>
   /** 撤回群消息 */
   recall: (message_id: number) => Promise<any>
   /** 禁言群成员 */
-  banMember: (user_id: number, duration: number) => Promise<any>
+  ban: (user_id: number, duration: number) => Promise<any>
   /** 发送群消息 */
   sendMsg: SendMsg
 }
@@ -703,7 +712,7 @@ export type MessageEventBase<T extends MessageType, U extends object> = EventBas
     raw_message: string
     /** 消息段数组 */
     message: RecvElement[]
-    /** 回复消息的方法 */
+    /** 回复消息 */
     reply: Reply
   }
 >
@@ -750,18 +759,20 @@ export type GroupMessageEvent = MessageEventBase<
     user_id: number
     /** 群消息子类型：normal-普通消息, notice-通知消息 */
     sub_type: 'normal' | 'notice'
-    /** 撤回该消息的方法 */
+    /** 撤回该消息 */
     recall: Recall
-    /** 添加消息表态的方法 */
+    /** 添加消息表态 */
     addReaction: ReactionAction
-    /** 删除消息表态的方法 */
+    /** 删除消息表态 */
     delReaction: ReactionAction
     /** 获取引用的消息 */
     getQuoteMessage: () => Promise<GroupMessageEvent | null>
-    /** 添加精华消息的方法 */
-    addEssence: () => Promise<void>
-    /** 删除精华消息的方法 */
+    /** 设置精华消息 */
+    setEssence: () => Promise<void>
+    /** 删除精华消息 */
     delEssence: () => Promise<void>
+    /** 获取发送者作为群成员的相关信息，如群身份、群名片等 */
+    getSenderMemberInfo: () => Promise<any>
     /** 群信息对象 */
     group: Group
     /** 发送者信息 */
@@ -1078,9 +1089,9 @@ export type RequestEventBase<T extends string, U extends object> = EventBase<
 export type FriendRequestEvent = RequestEventBase<
   'friend',
   {
-    /** 同意添加好友请求的方法 */
+    /** 同意添加好友请求 */
     approve: () => Promise<void>
-    /** 拒绝添加好友请求的方法 */
+    /** 拒绝添加好友请求 */
     reject: (reason?: string) => Promise<void>
   }
 >
@@ -1093,9 +1104,9 @@ export type GroupAddRequestEvent = RequestEventBase<
     group_id: number
     /** 请求子类型：add-主动加群 */
     sub_type: 'add'
-    /** 同意群请求的方法 */
+    /** 同意群请求 */
     approve: () => Promise<void>
-    /** 拒绝群请求的方法 */
+    /** 拒绝群请求 */
     reject: (reason?: string) => Promise<void>
   }
 >
@@ -1370,3 +1381,24 @@ export type NapCatExtendAPI =
 
 /** 所有可用的 API 接口联合类型 */
 export type API = OneBotAPI | NapCatExtendAPI
+
+export interface GroupMemberInfo {
+  group_id: number
+  user_id: number
+  nickname: string
+  card: string
+  sex: string
+  age: number
+  area: string
+  level: string
+  qq_level: number
+  join_time: number
+  last_sent_time: number
+  title_expire_time: number
+  unfriendly: boolean
+  card_changeable: boolean
+  is_robot: boolean
+  shut_up_timestamp: number
+  role: 'owner' | 'admin' | 'member' | (string & {})
+  title: string
+}

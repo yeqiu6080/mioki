@@ -12,20 +12,22 @@ import type {
   Friend,
   FriendWithInfo,
   Group,
+  GroupMemberInfo,
   GroupMessageEvent,
   GroupWithInfo,
-  MiokiOptions,
+  NapcatOptions,
   NormalizedElementToSend,
   OptionalProps,
   PrivateMessageEvent,
   RecvElement,
   Sendable,
+  Stat,
 } from './types'
 
 export const name: string = pkg.name
 export const version: string = pkg.version
 
-const DEFAULT_NAPCAT_OPTIONS: Required<OptionalProps<MiokiOptions>> = {
+const DEFAULT_NAPCAT_OPTIONS: Required<OptionalProps<NapcatOptions>> = {
   protocol: 'ws',
   host: 'localhost',
   port: 3333,
@@ -42,9 +44,17 @@ export class NapCat {
   /** 机器人 ID */
   #uin: number = 0
   /** 机器人昵称  */
-  #nickname: string = '-'
+  #nickname: string = ''
   /** 机器人状态 */
   #online: boolean = false
+  /** nickname 缓存 */
+  #nicknameCache = new Map<number, string>()
+  /** 消息数据 */
+  #stat: Stat = {
+    start_time: Date.now(),
+    recv: { group: 0, private: 0 },
+    send: { group: 0, private: 0 },
+  }
   /** Cookies 缓存 */
   #cookieCache = new Map<
     string,
@@ -59,10 +69,15 @@ export class NapCat {
     }
   >()
 
-  constructor(private readonly options: MiokiOptions) {}
+  constructor(private readonly options: NapcatOptions) {}
+
+  /** 统计数据 */
+  get stat(): Stat {
+    return this.#stat
+  }
 
   /** 配置项 */
-  get #config(): Required<MiokiOptions> {
+  get #config(): Required<NapcatOptions> {
     return {
       protocol: this.options.protocol || DEFAULT_NAPCAT_OPTIONS.protocol,
       host: this.options.host || DEFAULT_NAPCAT_OPTIONS.host,
@@ -194,52 +209,60 @@ export class NapCat {
       group_id,
       group_name,
       napcat: this,
-      doSign: () => this.api('set_group_sign', { group_id }),
-      getInfo: () => this.api('get_group_info', { group_id }),
-      getMemberList: async () => this.api('get_group_member_list', { group_id }),
-      getMemberInfo: (user_id: number) => this.api('get_group_member_info', { group_id, user_id }),
-      setTitle: (title: string) => this.api('set_group_special_title', { group_id, title }),
-      setCard: (user_id: number, card: string) => this.api('set_group_card', { group_id, user_id, card }),
-      addEssence: (message_id: string) => this.api('set_essence_msg', { message_id }),
-      delEssence: (message_id: string) => this.api('delete_essence_msg', { message_id }),
-      recall: (message_id: number) => this.api('delete_msg', { message_id }),
-      banMember: (user_id: number, duration: number) => this.api('set_group_ban', { group_id, user_id, duration }),
-      sendMsg: (sendable: Sendable | Sendable[]) => this.sendGroupMsg(group_id, sendable),
+      sign: this.setGroupSign.bind(this, group_id),
+      setTitle: this.setGroupSpecialTitle.bind(this, group_id),
+      setCard: this.setGroupCard.bind(this, group_id),
+      setEssence: this.setEssenceMsg.bind(this),
+      delEssence: this.deleteEssenceMsg.bind(this),
+      getInfo: this.getGroupInfo.bind(this, group_id),
+      getMemberList: this.getGroupMemberList.bind(this, group_id),
+      getMemberInfo: this.getGroupMemberInfo.bind(this, group_id),
+      recall: this.recallMsg.bind(this),
+      ban: this.setGroupBan.bind(this, group_id),
+      sendMsg: this.sendGroupMsg.bind(this, group_id),
     }
   }
 
   /** 构建好友对象 */
   #buildFriend<T extends object>(user_id: number, nickname: string = '', extraInfo: T = {} as T): Friend & T {
+    const name = nickname || this.#nicknameCache.get(user_id) || ''
+    this.#nicknameCache.set(user_id, name)
+
     return {
       ...extraInfo,
       user_id,
-      nickname,
+      nickname: name,
       napcat: this,
-      delete: (block?: boolean, both?: boolean) =>
-        this.api('delete_friend', { user_id, temp_block: block, temp_both_del: both }),
-      sendMsg: (sendable: Sendable | Sendable[]) => this.sendPrivateMsg(user_id, sendable),
-      getInfo: () => this.api('get_stranger_info', { user_id }),
+      delete: this.deleteFriend.bind(this, user_id),
+      sendMsg: this.sendPrivateMsg.bind(this, user_id),
+      getInfo: this.getStrangerInfo.bind(this, user_id),
     }
+  }
+
+  #transformOneBotMessage(message: any[]): RecvElement[] {
+    return (message || []).filter((e) => e.type !== 'reply').map((el: any) => ({ type: el.type, ...el.data }))
   }
 
   /** 构建私聊消息事件 */
   #buildPrivateMessageEvent(event: Omit<PrivateMessageEvent, 'message'> & { message: any[] }): PrivateMessageEvent {
     const quote_id: string | null = event.message.find((el: any) => el.type === 'reply')?.data?.id || null
 
+    if (event.sender.nickname) {
+      this.#nicknameCache.set(event.sender.user_id, event.sender.nickname)
+    }
+
+    const target = event.target_id
+      ? { user_id: event.target_id, nickname: this.#nicknameCache.get(event.target_id) || '' }
+      : { user_id: event.sender.user_id, nickname: event.sender.nickname }
+
     return {
       ...event,
       quote_id,
-      getQuoteMessage: async (): Promise<PrivateMessageEvent | null> => {
-        if (!quote_id) return null
-        const event = await this.api<PrivateMessageEvent>('get_msg', { message_id: quote_id })
-        return this.#buildPrivateMessageEvent(event)
-      },
-      message: (event.message || [])
-        .filter((e) => e.type !== 'reply')
-        .map((el: any) => ({ type: el.type, ...el.data })),
-      friend: this.#buildFriend(event.user_id, event.sender?.nickname || ''),
+      getQuoteMessage: () => this.getMsg(quote_id) as Promise<PrivateMessageEvent | null>,
+      message: this.#transformOneBotMessage(event.message),
+      friend: this.#buildFriend(target.user_id, target.nickname),
       reply: (sendable: Sendable | Sendable[], reply = false) =>
-        this.sendPrivateMsg(event.user_id, this.#wrapReply(sendable, event.message_id, reply)),
+        this.sendPrivateMsg(target.user_id, this.#wrapReply(sendable, event.message_id, reply)),
     }
   }
 
@@ -247,25 +270,22 @@ export class NapCat {
   #buildGroupMessageEvent(event: Omit<GroupMessageEvent, 'message'> & { message: any[] }): GroupMessageEvent {
     const quote_id: string | null = event.message.find((el: any) => el.type === 'reply')?.data?.id || null
 
+    if (event.sender.nickname) {
+      this.#nicknameCache.set(event.sender.user_id, event.sender.nickname)
+    }
+
     return {
       ...event,
       quote_id,
-      getQuoteMessage: async (): Promise<GroupMessageEvent | null> => {
-        if (!quote_id) return null
-        const event = await this.api<GroupMessageEvent>('get_msg', { message_id: quote_id })
-        return this.#buildGroupMessageEvent(event)
-      },
-      message: (event.message || [])
-        .filter((e) => e.type !== 'reply')
-        .map((el: any) => ({ type: el.type, ...el.data })),
-      group: this.#buildGroup(event.group_id, event.group?.group_name || ''),
-      recall: () => this.api<any>('delete_msg', { message_id: event.message_id }),
-      addReaction: (id: string) =>
-        this.api('set_msg_emoji_like', { message_id: event.message_id, emoji_id: id, set: true }),
-      delReaction: (id: string) =>
-        this.api('set_msg_emoji_like', { message_id: event.message_id, emoji_id: id, set: false }),
-      addEssence: () => this.api('set_essence_msg', { message_id: event.message_id }),
-      delEssence: () => this.api('delete_essence_msg', { message_id: event.message_id }),
+      getQuoteMessage: () => this.getMsg(quote_id) as Promise<GroupMessageEvent | null>,
+      getSenderMemberInfo: this.getGroupMemberInfo.bind(this, event.group_id, event.sender.user_id),
+      message: this.#transformOneBotMessage(event.message),
+      group: this.#buildGroup(event.group_id, event.group_name || ''),
+      recall: this.recallMsg.bind(this, event.message_id),
+      addReaction: this.addReaction.bind(this, event.message_id),
+      delReaction: this.delReaction.bind(this, event.message_id),
+      setEssence: this.setEssenceMsg.bind(this, event.message_id),
+      delEssence: this.deleteEssenceMsg.bind(this, event.message_id),
       reply: (sendable: Sendable | Sendable[], reply = false) =>
         this.sendGroupMsg(event.group_id, this.#wrapReply(sendable, event.message_id, reply)),
     }
@@ -318,39 +338,34 @@ export class NapCat {
 
         case 'message': {
           if (data.message_type === 'private') {
+            this.#stat.recv.private++
             data = this.#buildPrivateMessageEvent(data)
           } else {
+            this.#stat.recv.group++
             data = this.#buildGroupMessageEvent(data)
           }
 
           this.#event.emit('message', data)
 
+          const msg = this.stringifyMessage(data.message)
+
+          const group = data.group ? `${data.group_name}(${data.group_id})` : ''
+          const sender = `${data.sender.nickname}(${data.sender.user_id})`
+
           switch (data.message_type) {
             case 'private': {
-              this.logger.trace(`received private message: ${JSON.stringify(data)}`)
-
-              this.logger.info(
-                `[P] ${data.sender.nickname}(${data.sender.user_id}): ${this.stringifyMessage(data.message)}`,
-              )
-
               this.#event.emit('message.private', data)
               this.#event.emit(`message.private.${data.sub_type}`, data)
-
+              this.logger.trace(`received private message: ${JSON.stringify(data)}`)
+              this.logger.info(`[私:${sender}] ${msg}`)
               break
             }
 
             case 'group': {
-              this.logger.trace(`received group message: ${JSON.stringify(data)}`)
-
-              this.logger.info(
-                `[G:${data.group_name}:${data.group_id}] ${data.sender.nickname}(${data.sender.user_id}): ${this.stringifyMessage(
-                  data.message,
-                )}`,
-              )
-
               this.#event.emit('message.group', data)
               this.#event.emit(`message.group.${data.sub_type}`, data)
-
+              this.logger.trace(`received group message: ${JSON.stringify(data)}`)
+              this.logger.info(`[群:${group}] ${sender}: ${msg}`)
               break
             }
 
@@ -365,13 +380,30 @@ export class NapCat {
         }
 
         case 'message_sent': {
-          this.logger.trace(`received message_sent: ${JSON.stringify(data)}`)
+          if (data.message_type === 'private') {
+            this.#stat.send.private++
+            data = this.#buildPrivateMessageEvent(data)
+          } else {
+            this.#stat.send.group++
+            data = this.#buildGroupMessageEvent(data)
+          }
+
           this.#event.emit('message_sent', data)
+          this.logger.trace(`received message_sent: ${JSON.stringify(data)}`)
 
           if (data.message_type) {
             this.#event.emit(`message_sent.${data.message_type}`, data)
+
             if (data.sub_type) {
               this.#event.emit(`message_sent.${data.message_type}.${data.sub_type}`, data)
+            }
+
+            const msg = this.stringifyMessage(data.message)
+
+            if (data.message_type === 'group' && data.group_id) {
+              this.logger.info(`[>>>:群:${data.group_name}(${data.group_id})] ${msg}`)
+            } else {
+              this.logger.info(`[>>>:私:${data.friend.nickname}(${data.friend.user_id})] ${msg}`)
             }
           }
 
@@ -557,6 +589,85 @@ export class NapCat {
   }
 
   /**
+   * 获取好友列表
+   */
+  async getFriendList(): Promise<(Friend & Record<string, any>)[]> {
+    const friends = await this.api<Friend[]>('get_friend_list')
+    return friends.map((f) => this.#buildFriend(f.user_id, f.nickname, f))
+  }
+
+  /**
+   * 获取群列表
+   */
+  async getGroupList(): Promise<(Group & Record<string, any>)[]> {
+    const groups = await this.api<Group[]>('get_group_list')
+    return groups.map((g) => this.#buildGroup(g.group_id, g.group_name, g))
+  }
+
+  /**
+   * 添加消息回应
+   */
+  addReaction(message_id: number, id: string): Promise<void> {
+    return this.api<void>('set_msg_emoji_like', { message_id, emoji_id: id, set: true })
+  }
+
+  /**
+   * 删除消息回应
+   */
+  delReaction(message_id: number, id: string): Promise<void> {
+    return this.api<void>('set_msg_emoji_like', { message_id, emoji_id: id, set: false })
+  }
+
+  /**
+   * 获取消息
+   */
+  async getMsg(message_id?: number | string | null): Promise<GroupMessageEvent | PrivateMessageEvent | null> {
+    if (!message_id) {
+      return null
+    }
+
+    const msg = await this.api<any>('get_msg', { message_id })
+
+    if (msg.message_type === 'private') {
+      return this.#buildPrivateMessageEvent(msg)
+    } else {
+      return this.#buildGroupMessageEvent(msg)
+    }
+  }
+
+  /**
+   * 删除好友
+   */
+  deleteFriend(user_id: number, block: boolean = false, both: boolean = false): Promise<void> {
+    return this.api<void>('delete_friend', {
+      user_id,
+      temp_block: block,
+      temp_both_del: both,
+    })
+  }
+
+  /**
+   * 设置群成员禁言
+   */
+  setGroupBan(group_id: number, user_id: number, duration: number): Promise<void> {
+    return this.api<void>('set_group_ban', { group_id, user_id, duration })
+  }
+
+  /**
+   * 撤回消息
+   */
+  recallMsg(message_id: number): Promise<void> {
+    return this.api<void>('delete_msg', { message_id })
+  }
+
+  /**
+   * 获取陌生人信息
+   */
+  getStrangerInfo(user_id: number): Promise<any> {
+    return this.api<any>('get_stranger_info', { user_id })
+  }
+
+  /**
    * 发送私聊消息
    */
   sendPrivateMsg(user_id: number, sendable: Sendable | Sendable[]): Promise<{ message_id: number }> {
@@ -574,6 +685,62 @@ export class NapCat {
       group_id,
       message: this.normalizeSendable(sendable),
     })
+  }
+
+  /**
+   * 获取群信息
+   */
+  getGroupInfo(group_id: number): Promise<any> {
+    return this.api<any>('get_group_info', { group_id })
+  }
+
+  /**
+   * 群签到
+   */
+  setGroupSign(group_id: number): Promise<any> {
+    return this.api<void>('set_group_sign', { group_id })
+  }
+
+  /**
+   * 设置群精华消息
+   */
+  setEssenceMsg(message_id: number): Promise<void> {
+    return this.api<void>('set_essence_msg', { message_id })
+  }
+
+  /**
+   * 删除群精华消息
+   */
+  deleteEssenceMsg(message_id: number): Promise<void> {
+    return this.api<void>('delete_essence_msg', { message_id })
+  }
+
+  /**
+   * 设置群成员名片
+   */
+  setGroupCard(group_id: number, user_id: number, card: string): Promise<void> {
+    return this.api<void>('set_group_card', { group_id, user_id, card })
+  }
+
+  /**
+   * 设置群成员专属头衔
+   */
+  setGroupSpecialTitle(group_id: number, user_id: number, title: string): Promise<void> {
+    return this.api<void>('set_group_special_title', { group_id, user_id, title })
+  }
+
+  /**
+   * 获取群成员列表
+   */
+  getGroupMemberList(group_id: number): Promise<GroupMemberInfo[]> {
+    return this.api<GroupMemberInfo[]>('get_group_member_list', { group_id })
+  }
+
+  /**
+   * 获取群成员信息
+   */
+  getGroupMemberInfo(group_id: number, user_id: number): Promise<GroupMemberInfo> {
+    return this.api<GroupMemberInfo>('get_group_member_info', { group_id, user_id })
   }
 
   /**
