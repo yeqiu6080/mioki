@@ -1,6 +1,6 @@
 # mioki
 
-A simple NapCat OneBot v11 framework.
+💓 A simple OneBot bot framework for NapCat, successor of KiviBot.
 
 <img src="./docs//demo.png" title="demo" alt="demo" style="max-width: 640px; border-radius: 4px; border: none;" />
 
