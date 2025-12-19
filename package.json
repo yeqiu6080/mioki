@@ -16,7 +16,10 @@
     "dev": "pnpm --parallel --filter './packages/**' run dev",
     "build": "pnpm --parallel --filter './packages/**' run build",
     "release": "bumpp -r",
-    "publish:ci": "node ./scripts/publish-ci.ts"
+    "publish:ci": "node ./scripts/publish-ci.ts",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "prettier": {
     "semi": false,
@@ -28,16 +31,18 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "catalog:dev",
-    "@types/react-dom": "catalog:react19",
     "@types/react": "catalog:react19",
+    "@types/react-dom": "catalog:react19",
     "bumpp": "^10.3.2",
     "mioki": "workspace:*",
     "napcat-sdk": "workspace:*",
     "prettier": "^3.7.4",
     "puppeteer-core": "^24.33.0",
-    "react-dom": "catalog:react19",
     "react": "catalog:react19",
+    "react-dom": "catalog:react19",
     "sharp": "^0.34.5",
-    "typescript": "catalog:dev"
+    "typescript": "catalog:dev",
+    "vitepress": "2.0.0-alpha.15",
+    "vue": "^3.5.26"
   }
 }

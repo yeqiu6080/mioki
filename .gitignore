@@ -4,3 +4,7 @@ dist
 logs
 
 **/plugins/**/.browser-data
+
+# VitePress build output
+docs/.vitepress/dist
+docs/.vitepress/cache
