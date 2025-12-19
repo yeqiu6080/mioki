@@ -34,7 +34,7 @@ export async function start(options: StartOptions = {}): Promise<void> {
   logger.info(colors.dim('='.repeat(40)))
   logger.info(colors.dim(colors.italic(`作者: Viki <hi@viki.moe> (https://github.com/vikiboss)`)))
   logger.info(colors.dim(colors.italic(`仓库: https://github.com/vikiboss/mioki`)))
-  logger.info(colors.dim(colors.italic(`文档: https://mioki.viki.moe (还没写)`)))
+  logger.info(colors.dim(colors.italic(`文档: https://mioki.viki.moe`)))
   logger.info(colors.dim('='.repeat(40)))
   logger.info(`${colors.dim('工作目录: ')}${colors.blue(cfg.BOT_CWD.value)}`)
   logger.info(`${colors.dim('插件目录: ')}${colors.blue(plugin_dir)}`)
