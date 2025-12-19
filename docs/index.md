@@ -1,6 +1,6 @@
 ---
 layout: home
-titleTemplate: 能跑就行 の Bot
+titleTemplate: KiviBot 的精神继承者
 description: 基于 NapCat 的插件式 OneBot 机器人框架，KiviBot 的精神继承者。
 head:
   - - meta
