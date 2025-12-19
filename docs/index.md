@@ -1,15 +1,15 @@
 ---
 layout: home
 titleTemplate: KiviBot 的精神继承者
-description: 基于 NapCat 的插件式 OneBot 机器人框架，KiviBot 的精神继承者。
+description: 💓 基于 NapCat 的插件式 OneBot 机器人框架，KiviBot 的精神继任者。
 head:
   - - meta
     - name: description
-      content: 💓 基于 NapCat 的插件式 OneBot 机器人框架，KiviBot 的精神继承者。
+      content: 💓 基于 NapCat 的插件式 OneBot 机器人框架，KiviBot 的精神继任者。
 hero:
   name: mioki
   text: KiviBot 的精神继承者
-  tagline: 基于 NapCat 的 OneBot QQ 机器人框架
+  tagline: 基于 NapCat 的插件式 OneBot 机器人框架
   image:
     src: /logo.png
     alt: mioki

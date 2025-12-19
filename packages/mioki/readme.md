@@ -1,6 +1,6 @@
 # mioki
 
-💓 一个插件式的 NapCat OneBot 框架，KiviBot 的精神继任者。
+💓 一个基于 NapCat 的插件式 OneBot 机器人框架，KiviBot 的精神继任者。
 
 > [!注意]
 > 本项目仍在积极开发中，使用需自担风险。
