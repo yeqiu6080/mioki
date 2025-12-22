@@ -41,7 +41,7 @@ export default definePlugin({
             return await (await fetch(api)).text()
           },
 
-          '/^\\s(?<city>.{2,10})天气$/': async (matches) => {
+          '/^(?<city>.{2,10})天气$/': async (matches) => {
             const city = matches.groups?.city || '北京'
             const api = `https://60s.viki.moe/v2/weather/realtime?query=${encodeURIComponent(city)}&encoding=text`
             return await (await fetch(api)).text()

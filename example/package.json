@@ -16,7 +16,8 @@
     "admins": [],
     "plugins": [
       "like",
-      "test"
+      "test",
+      "words"
     ],
     "log_level": "info",
     "plugins_dir": "../plugins",
