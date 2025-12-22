@@ -22,7 +22,15 @@ mioki 依赖 NapCat 作为 QQ 协议端，请先参考 [NapCat 官方文档](htt
 
 ### 方式一：使用 CLI 创建（推荐）{#create-with-cli}
 
-mioki 提供了交互式命令行工具，帮助你快速创建项目。只需一条命令即可完成项目初始化：
+mioki 提供了交互式命令行工具，只需一条命令即可完成项目初始化。
+
+::: tip 💡 快速跳过交互
+如果你已经知道 NapCat 的配置信息，可以通过参数一键创建：
+```sh
+npx mioki@latest --name mioki-bot --port 3001 --token <你的Token> --owners <你的QQ>
+```
+更多参数请参考 [CLI 参数说明](/mioki/api#cli)。
+:::
 
 ::: code-group
 
@@ -40,74 +48,10 @@ $ yarn dlx mioki@latest
 
 :::
 
-CLI 会引导你完成以下配置：
-
-1. **项目名称**：生成的项目目录名
-2. **NapCat 连接配置**：协议、主机、端口、Token
-3. **机器人配置**：命令前缀、主人 QQ、管理员 QQ
-4. **依赖安装选项**：是否使用 npm 镜像源
-
-#### CLI 选项 {#cli-options}
-
-你也可以通过命令行参数预先指定配置，跳过交互式提问：
+CLI 会依次引导你完成项目名称、NapCat 连接配置、权限设置等，创建完成后按提示启动即可：
 
 ```sh
-npx mioki@latest [选项]
-```
-
-| 选项                | 说明                              | 默认值      |
-| ------------------- | --------------------------------- | ----------- |
-| `-h, --help`        | 显示帮助信息                      | -           |
-| `-v, --version`     | 显示版本号                        | -           |
-| `--name <name>`     | 指定项目名称                      | `bot`       |
-| `--protocol <type>` | 指定 NapCat 协议（`ws` 或 `wss`） | `ws`        |
-| `--host <host>`     | 指定 NapCat 主机地址              | `localhost` |
-| `--port <port>`     | 指定 NapCat 端口                  | `3001`      |
-| `--token <token>`   | 指定 NapCat 连接令牌（必填）      | -           |
-| `--prefix <prefix>` | 指定命令前缀                      | `#`         |
-| `--owners <qq>`     | 指定主人 QQ，英文逗号分隔（必填） | -           |
-| `--admins <qq>`     | 指定管理员 QQ，英文逗号分隔       | -           |
-| `--use-npm-mirror`  | 使用 npm 镜像源加速依赖安装       | `false`     |
-
-#### CLI 使用示例 {#cli-examples}
-
-**交互式创建**（推荐新手）：
-
-```sh
-npx mioki@latest
-```
-
-**一键创建**（跳过所有交互）：
-
-```sh
-npx mioki@latest --name my-bot --token abc123 --owners 123456789
-```
-
-**完整参数示例**：
-
-```sh
-npx mioki@latest \
-  --name my-bot \
-  --protocol ws \
-  --host localhost \
-  --port 3001 \
-  --token your-napcat-token \
-  --prefix "#" \
-  --owners 123456789,987654321 \
-  --admins 111111111,222222222 \
-  --use-npm-mirror
-```
-
-**查看帮助**：
-
-```sh
-npx mioki --help
-```
-
-创建完成后，CLI 会输出引导信息，按照提示启动机器人：
-
-```sh
-cd my-bot && npm install && npm start
+cd mioki-bot && npm install && npm start
 ```
 
 ### 方式二：手动创建 {#create-manually}
@@ -118,7 +62,7 @@ cd my-bot && npm install && npm start
 
 ```sh
 # 创建项目目录
-mkdir my-bot && cd my-bot
+mkdir mioki-bot && cd mioki-bot
 
 # 初始化 package.json
 npm init
@@ -145,7 +89,7 @@ require('mioki').start({ cwd: __dirname })
 
 ```json
 {
-  "name": "my-bot",
+  "name": "mioki-bot",
   "scripts": {
     "start": "node app.ts"
   },
@@ -182,7 +126,7 @@ require('mioki').start({ cwd: __dirname })
 | `plugins_dir`     | `string`   | `plugins`   | 插件目录路径                               |
 | `error_push`      | `boolean`  | `false`     | 是否将未捕获的错误推送给主人               |
 | `online_push`     | `boolean`  | `false`     | 机器人上线时是否通知主人                   |
-| `napcat.token`    | `string`   | -           | NapCat 访问令牌                            |
+| `napcat.token`    | `string`   | -           | NapCat WebSocket 访问密钥                  |
 | `napcat.protocol` | `string`   | `ws`        | WebSocket 协议：`ws` 或 `wss`，默认 ws     |
 | `napcat.host`     | `string`   | `localhost` | NapCat WebSocket 服务地址，默认 localhost  |
 | `napcat.port`     | `number`   | `3001`      | NapCat WebSocket 服务端口，默认 3001       |
@@ -203,8 +147,8 @@ pnpm start
 一个基于 NapCat 的插件式 QQ 机器人框架
 轻量 * 跨平台 * 插件式 * 热重载 * 注重开发体验
 ========================================
->>> 正在连接 NapCat 实例: ws://localhost:3001
-已连接到 NapCat 实例: NapCat-v1.0.0 机器人昵称(123456789)
+>>> 正在连接 NapCat 实例: ws://localhost:3001?access_token=***
+已连接到 NapCat 实例: NapCat-v4.2.0 机器人昵称(123456789)
 >>> 加载 mioki 内置插件: mioki-core
 成功加载了 1 个插件，总耗时 10.00 毫秒
 mioki v1.0.0 启动完成，祝您使用愉快 🎉️
@@ -234,7 +178,7 @@ mioki 内置了一些管理指令（仅主人可用），默认使用 `#` 作为
 一个典型的 mioki 项目目录结构如下：
 
 ```
-my-bot/
+bot/
 ├── app.ts              # 入口文件
 ├── package.json        # 项目配置（包含 mioki 配置）
 ├── plugins/            # 插件目录

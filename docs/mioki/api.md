@@ -1,6 +1,59 @@
 # mioki API {#api}
 
-本文档详细介绍 mioki 框架提供的所有 API，包括上下文对象、工具函数和内置指令。
+本文档详细介绍 mioki 框架提供的所有 API，包括命令行工具、上下文对象、工具函数和内置指令。
+
+## CLI 命令行工具 {#cli}
+
+mioki 提供了 CLI 工具用于快速创建项目。你可以通过命令行参数预先指定配置，跳过交互式提问。
+
+### 基本用法 {#cli-usage}
+
+```sh
+npx mioki@latest [选项]
+```
+
+### 参数列表 {#cli-options}
+
+| 选项                | 说明                              | 默认值      |
+| ------------------- | --------------------------------- | ----------- |
+| `-h, --help`        | 显示帮助信息                      | -           |
+| `-v, --version`     | 显示版本号                        | -           |
+| `--name <name>`     | 指定项目名称                      | `bot`       |
+| `--protocol <type>` | 指定 NapCat 协议（`ws` 或 `wss`） | `ws`        |
+| `--host <host>`     | 指定 NapCat 主机地址              | `localhost` |
+| `--port <port>`     | 指定 NapCat 端口                  | `3001`      |
+| `--token <token>`   | 指定 NapCat 连接令牌              | -           |
+| `--prefix <prefix>` | 指定命令前缀                      | `#`         |
+| `--owners <qq>`     | 指定主人 QQ，英文逗号分隔         | -           |
+| `--admins <qq>`     | 指定管理员 QQ，英文逗号分隔       | -           |
+| `--use-npm-mirror`  | 使用 npm 镜像源加速依赖安装       | `false`     |
+
+### 使用示例 {#cli-examples}
+
+**一键创建**（跳过交互式提问）：
+
+```sh
+npx mioki@latest --name my-bot --token abc123 --owners 123456789
+```
+
+**完整参数**：
+
+```sh
+npx mioki@latest \
+  --name my-bot \
+  --protocol ws \
+  --host localhost \
+  --port 3001 \
+  --token your-napcat-token \
+  --prefix "#" \
+  --owners 123456789,987654321 \
+  --admins 111111111,222222222 \
+  --use-npm-mirror
+```
+
+::: tip
+使用 `npx mioki --help` 可随时查看帮助信息。
+:::
 
 ## 上下文对象 {#context}
 
