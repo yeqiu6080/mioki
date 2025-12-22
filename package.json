@@ -3,8 +3,11 @@
   "private": true,
   "type": "module",
   "version": "0.6.10",
-  "packageManager": "pnpm@10.26.0",
+  "packageManager": "pnpm@10.26.1",
   "description": "💓 一个基于 NapCat 的插件式 OneBot 机器人框架，KiviBot 的精神继任者。",
+  "engines": {
+    "node": ">= 20.11.0"
+  },
   "keywords": [
     "onebot",
     "onebot v11",
@@ -37,7 +40,7 @@
     "mioki": "workspace:*",
     "napcat-sdk": "workspace:*",
     "prettier": "^3.7.4",
-    "puppeteer-core": "^24.33.0",
+    "puppeteer-core": "^24.34.0",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",
     "sharp": "^0.34.5",
