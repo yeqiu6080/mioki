@@ -4,7 +4,7 @@ packages:
 
 catalogs:
   dev:
-    '@types/node': ^24.10.4
+    '@types/node': ^22.18.0
     tsdown: ^0.18.2
     typescript: ^5.9.3
   react19:

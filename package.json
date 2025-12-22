@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.26.1",
   "description": "💓 一个基于 NapCat 的插件式 OneBot 机器人框架，KiviBot 的精神继任者。",
   "engines": {
-    "node": ">= 20.11.0"
+    "node": ">= 22.18.0"
   },
   "keywords": [
     "onebot",
