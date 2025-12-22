@@ -265,9 +265,9 @@ async function confirm(message: string, options?: OmitTypeWithRequired<ConfirmPr
 }
 
 async function input(message: string, options?: OmitTypeWithRequired<TextPromptOptions>) {
-  const res = await consola.prompt(message, { type: 'text', cancel: 'reject', ...options })
-  if (options?.required) required(res)
-  return res
+  const result = await consola.prompt(message, { type: 'text', cancel: 'reject', ...options })
+  if (options?.required && !result) return input(message, options)
+  return result
 }
 
 function makeFileTree(
@@ -296,13 +296,4 @@ function makeFileTree(
       fs.writeFileSync(filePath, content)
     }
   }
-}
-
-function required<T extends string | undefined | null | Array<string | undefined | null>>(value: T): T {
-  if (Array.isArray(value) ? !value.length : !value) {
-    console.error('目标值不能为空')
-    process.exit(1)
-  }
-
-  return value
 }
