@@ -42,7 +42,7 @@ export async function noticeFriends(
   message?: Sendable | null,
   delay = 1000,
 ): Promise<void> {
-  if (!bot.isOnline) {
+  if (!bot.isOnline()) {
     logger.error('发送失败，Bot 不在线')
     return
   }

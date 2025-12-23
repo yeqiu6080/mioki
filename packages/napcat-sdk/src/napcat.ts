@@ -70,7 +70,7 @@ export class NapCat {
     }
   >()
 
-  constructor(private readonly options: NapcatOptions) {}
+  constructor(private readonly options: NapcatOptions = {}) {}
 
   /** 统计数据 */
   get stat(): Stat {
