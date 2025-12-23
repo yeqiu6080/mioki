@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import mitt from 'mitt'
 import pkg from '../package.json' with { type: 'json' }
 import { segment } from './segment'
-import { CONSOLE_LOGGER } from './logger'
+import { ABSTRACT_LOGGER, CONSOLE_LOGGER } from './logger'
 
 import type { Emitter } from 'mitt'
 import type { Logger } from './logger'
@@ -70,6 +70,9 @@ export class NapCat {
     }
   >()
 
+  public static ABSTRACT_LOGGER: Logger = ABSTRACT_LOGGER
+  public static CONSOLE_LOGGER: Logger = CONSOLE_LOGGER
+
   constructor(private readonly options: NapcatOptions = {}) {}
 
   /** 统计数据 */
@@ -91,8 +94,8 @@ export class NapCat {
   /** WebSocket 实例 */
   get ws(): WebSocket {
     if (!this.#ws) {
-      this.logger.error('WebSocket 未连接。')
-      throw new Error('WebSocket 未连接。')
+      this.logger.error('WebSocket 未连接')
+      throw new Error('WebSocket 未连接')
     }
 
     return this.#ws
@@ -156,13 +159,13 @@ export class NapCat {
   /** 确保 WebSocket 已连接 */
   #ensureWsConnection(ws: WebSocket | null): asserts ws is WebSocket {
     if (!ws) {
-      this.logger.error('WebSocket 未连接。')
-      throw new Error('WebSocket 未连接。')
+      this.logger.error('WebSocket 未连接')
+      throw new Error('WebSocket 未连接')
     }
 
     if (ws.readyState !== WebSocket.OPEN) {
-      this.logger.error('WebSocket 未打开。')
-      throw new Error('WebSocket 未打开。')
+      this.logger.error('WebSocket 未打开')
+      throw new Error('WebSocket 未打开')
     }
   }
 
@@ -544,9 +547,14 @@ export class NapCat {
   }
 
   /**
-   * 注册一次性事件监听器
+   * 注册「一次性」事件监听器，支持主类型或者点分子类型
+   *
+   * 如:  `notice`、`message.private`、`request.group.invite` 等
+   *
+   * 如果需要移除监听器，请调用 `off` 方法或者使用返回的函数
+   *
    */
-  once<T extends keyof EventMap>(type: T, handler: (event: EventMap[NoInfer<T>]) => void): void {
+  once<T extends keyof EventMap>(type: T, handler: (event: EventMap[NoInfer<T>]) => void): () => void {
     const onceHandler = (event: EventMap[NoInfer<T>]) => {
       handler(event)
       this.#event.off(type, onceHandler)
@@ -554,6 +562,7 @@ export class NapCat {
 
     this.logger.debug(`注册一次性监听器: ${String(type)}`)
     this.#event.on(type, onceHandler)
+    return () => this.off(type, handler)
   }
 
   /**
@@ -561,11 +570,12 @@ export class NapCat {
    *
    * 如:  `notice`、`message.private`、`request.group.invite` 等
    *
-   * 如果需要移除监听器，请调用 `off` 方法
+   * 如果需要移除监听器，请调用 `off` 方法或者使用返回的函数
    */
-  on<T extends keyof EventMap>(type: T, handler: (event: EventMap[NoInfer<T>]) => void): void {
+  on<T extends keyof EventMap>(type: T, handler: (event: EventMap[NoInfer<T>]) => void): () => void {
     this.logger.debug(`注册监听器: ${String(type)}`)
     this.#event.on(type, handler)
+    return () => this.off(type, handler)
   }
 
   /**
@@ -887,22 +897,21 @@ export class NapCat {
         this.#event.emit('ws.close')
       }
 
-      ws.onerror = (error) => {
+      ws.onerror = (event) => {
         this.#online = false
-        this.logger.debug(`WebSocket 发生错误: ${error}`)
-        this.#event.emit('ws.error', error)
-        reject(error)
+        const msg = `WebSocket 发生错误，请确认 NapCat 服务已启动，且端口、访问令牌正确`
+        this.logger.debug(msg)
+        this.#event.emit('ws.error', event)
+        reject(new Error(msg))
       }
 
       ws.onopen = () => {
-        this.logger.debug('WebSocket 已连接')
+        this.logger.info(`WebSocket 已连接，NapCat SDK 实例已启动`)
         this.#event.emit('ws.open')
         resolve()
       }
 
       this.#ws = ws
-
-      this.logger.info(`WebSocket 实例已创建`)
     })
   }
 
@@ -912,9 +921,9 @@ export class NapCat {
       this.logger.info('正在销毁 NapCat SDK 实例...')
       this.#ws.close()
       this.#ws = null
-      this.logger.info('NapCat SDK 实例已销毁。')
+      this.logger.info('NapCat SDK 实例已销毁')
     } else {
-      this.logger.warn('NapCat SDK 实例未初始化。')
+      this.logger.warn('NapCat SDK 实例未初始化')
     }
   }
 }
