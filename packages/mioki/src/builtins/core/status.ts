@@ -1,10 +1,9 @@
 import os from 'node:os'
 import cp from 'node:child_process'
-import pm from 'pretty-ms'
-import { BUILTIN_PLUGINS } from '..'
-import { filesize, localNum, systemInfo } from '../../utils'
-import { findLocalPlugins, runtimePlugins } from '../../plugin'
 import { version } from '../../../package.json' with { type: 'json' }
+import { BUILTIN_PLUGINS } from '..'
+import { findLocalPlugins, runtimePlugins } from '../../plugin'
+import { prettyMs, filesize, localNum, systemInfo } from '../..'
 
 import type { NapCat } from 'napcat-sdk'
 
@@ -150,8 +149,8 @@ export async function getMiokiStatus(bot: NapCat): Promise<MiokiStatus> {
   }
 }
 
-export async function getMiokiStatusStr(client: NapCat): Promise<string> {
-  const { bot, plugins, stats, system, disk, cpu, memory, versions } = await getMiokiStatus(client)
+export async function formatMiokiStatus(status: MiokiStatus): Promise<string> {
+  const { bot, plugins, stats, system, disk, cpu, memory, versions } = status
 
   const diskValid = disk.total > 0 && disk.free >= 0
   const diskDesc = `${disk.percent}%-${filesize(disk.used, { round: 1 })}/${filesize(disk.total, { round: 1 })}`
@@ -163,7 +162,7 @@ export async function getMiokiStatusStr(client: NapCat): Promise<string> {
 🧩 启用了 ${localNum(plugins.enabled)} 个插件，共 ${localNum(plugins.total)} 个
 📮 收 ${localNum(stats.receive)} 条，发 ${localNum(stats.send)} 条
 🚀 ${filesize(memory.rss.used, { round: 1 })}/${memory.percent}%
-⏳ 已运行 ${pm(stats.uptime, { hideYear: true, secondsDecimalDigits: 0 })}
+⏳ 已运行 ${prettyMs(stats.uptime, { hideYear: true, secondsDecimalDigits: 0 })}
 🤖 mioki/${versions.mioki}-NapCat/${versions.napcat}
 🖥️ ${system.name.split(' ')[0]}/${system.version.split('.')[0]}-${system.name}-node/${versions.node.split('.')[0]}
 📊 ${memory.percent}%-${filesize(memory.used, { base: 2, round: 1 })}/${filesize(memory.total, { base: 2, round: 1 })}

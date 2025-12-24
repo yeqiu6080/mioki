@@ -1,5 +1,5 @@
 import { version } from '../../../package.json' with { type: 'json' }
-import { getMiokiStatus, MiokiStatus, getMiokiStatusStr } from './status'
+import { getMiokiStatus, formatMiokiStatus, type MiokiStatus } from './status'
 import { definePlugin, enablePlugin, findLocalPlugins, getAbsPluginDir, runtimePlugins } from '../..'
 
 import type { MiokiPlugin } from '../..'
@@ -8,9 +8,11 @@ const corePlugins = ['mioki-core']
 
 export interface MiokiCoreServiceContrib {
   /** 获取框架和系统的实时状态 */
-  miokiStatus(): Promise<MiokiStatus>
-  /** 获取框架和系统的实时状态字符串 */
-  miokiStatusStr(): Promise<string>
+  getMiokiStatus(): Promise<MiokiStatus>
+  /** 格式化框架状态字符串 */
+  formatMiokiStatus(status: MiokiStatus): Promise<string>
+  /** 自定义框架状态格式化函数 */
+  customFormatMiokiStatus(formatter: (status: MiokiStatus) => string | Promise<string>): void
 }
 
 const core: MiokiPlugin = definePlugin({
@@ -24,13 +26,13 @@ const core: MiokiPlugin = definePlugin({
     const displayPrefix = prefix.replace(/\\\\/g, '\\')
     const statusAdminOnly = ctx.botConfig.status_permission === 'admin-only'
 
-    const getStatusStr = () =>
-      ctx.isFunction(ctx.services.customMiokiStatusStr)
-        ? ctx.services.customMiokiStatusStr()
-        : getMiokiStatusStr(ctx.bot)
+    let statusFormatter = (status: MiokiStatus): string | Promise<string> => formatMiokiStatus(status)
 
-    ctx.addService('miokiStatus', () => getMiokiStatus(ctx.bot))
-    ctx.addService('miokiStatusStr', () => getMiokiStatusStr(ctx.bot))
+    ctx.addService('getMiokiStatus', () => getMiokiStatus(ctx.bot))
+    ctx.addService('formatMiokiStatus', formatMiokiStatus)
+    ctx.addService('customFormatMiokiStatus', (formatter: (status: MiokiStatus) => string | Promise<string>) => {
+      statusFormatter = formatter
+    })
 
     ctx.handle('message', (e) =>
       ctx.runWithErrorHandler(async () => {
@@ -41,7 +43,7 @@ const core: MiokiPlugin = definePlugin({
         if (statusAdminOnly && !ctx.hasRight(e)) return
 
         if (text.replace(cmdPrefix, '') === '状态') {
-          const status = await getStatusStr()
+          const status = await statusFormatter(await getMiokiStatus(ctx.bot))
           await e.reply(`〓 🟢 mioki 状态 〓\n${status}`.trim())
           return
         }
