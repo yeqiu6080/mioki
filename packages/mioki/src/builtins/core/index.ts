@@ -1,20 +1,8 @@
-import fs from 'node:fs'
-import mri from 'mri'
-import path from 'node:path'
-import dedent from 'dedent'
-import { jiti, unique } from '../../utils'
 import { version } from '../../../package.json' with { type: 'json' }
-import { string2argv } from 'string2argv'
-import { botConfig, updateBotConfig } from '../../config'
 import { getMiokiStatus, MiokiStatus, getMiokiStatusStr } from './status'
-import {
-  definePlugin,
-  enablePlugin,
-  findLocalPlugins,
-  getAbsPluginDir,
-  runtimePlugins,
-  type MiokiPlugin,
-} from '../../plugin'
+import { definePlugin, enablePlugin, findLocalPlugins, getAbsPluginDir, runtimePlugins } from '../..'
+
+import type { MiokiPlugin } from '../..'
 
 const corePlugins = ['mioki-core']
 
@@ -28,13 +16,18 @@ export interface MiokiCoreServiceContrib {
 const core: MiokiPlugin = definePlugin({
   name: 'mioki-core',
   version,
-  priority: 1,
+  priority: 8,
   setup(ctx) {
     const prefix = (ctx.botConfig.prefix ?? '#').replace(/[-_.^$?[\]{}]/g, '\\$&')
 
     const cmdPrefix = new RegExp(`^${prefix}`)
     const displayPrefix = prefix.replace(/\\\\/g, '\\')
     const statusAdminOnly = ctx.botConfig.status_permission === 'admin-only'
+
+    const getStatusStr = () =>
+      ctx.isFunction(ctx.services.customMiokiStatusStr)
+        ? ctx.services.customMiokiStatusStr()
+        : getMiokiStatusStr(ctx.bot)
 
     ctx.addService('miokiStatus', () => getMiokiStatus(ctx.bot))
     ctx.addService('miokiStatusStr', () => getMiokiStatusStr(ctx.bot))
@@ -48,28 +41,34 @@ const core: MiokiPlugin = definePlugin({
         if (statusAdminOnly && !ctx.hasRight(e)) return
 
         if (text.replace(cmdPrefix, '') === '状态') {
-          const status = await getMiokiStatusStr(ctx.bot)
+          const status = await getStatusStr()
           await e.reply(`〓 🟢 mioki 状态 〓\n${status}`.trim())
           return
         }
 
         if (!ctx.isOwner(e)) return
 
-        const { _: params, ..._options } = mri(string2argv(text))
-        const cmd = params.shift()?.replace(cmdPrefix, '') ?? ''
+        const { cmd, params, ..._options } = ctx.createCmd(text)
+
+        if (!cmd) return
+
         const [subCmd, target, ..._subParams] = params
 
-        switch (cmd) {
+        switch (cmd?.replace(/\s+/g, '')) {
           case '帮助': {
             await e.reply(
-              dedent(`
+              ctx
+                .dedent(
+                  `
               〓 💡 mioki 帮助 〓
               ${displayPrefix}插件 👉 框架插件管理
               ${displayPrefix}状态 👉 显示框架状态
               ${displayPrefix}设置 👉 框架设置管理
               ${displayPrefix}帮助 👉 显示帮助信息
               ${displayPrefix}退出 👉 退出框架进程
-              `).trim(),
+              `,
+                )
+                .trim(),
             )
             break
           }
@@ -84,7 +83,8 @@ const core: MiokiPlugin = definePlugin({
               case '列表': {
                 const localPlugins = await findLocalPlugins()
 
-                const plugins = unique([...localPlugins.map((e) => e.name), ...runtimePlugins.keys()])
+                const plugins = ctx
+                  .unique([...localPlugins.map((e) => e.name), ...runtimePlugins.keys()])
                   .map((name) => {
                     const isEnable = runtimePlugins.get(name)
                     const tag = isEnable ? '🟢' : '🔴'
@@ -106,13 +106,15 @@ const core: MiokiPlugin = definePlugin({
                   })
 
                 await e.reply(
-                  dedent(
-                    `
+                  ctx
+                    .dedent(
+                      `
                     〓 插件列表 〓
                     ${plugins.join('\n')}
                     共 ${plugins.length} 个，启用 ${runtimePlugins.size} 个
                     `,
-                  ).trim(),
+                    )
+                    .trim(),
                 )
 
                 break
@@ -128,15 +130,15 @@ const core: MiokiPlugin = definePlugin({
                   return
                 }
 
-                const pluginPath = path.join(getAbsPluginDir(), target)
+                const pluginPath = ctx.path.join(getAbsPluginDir(), target)
 
-                if (!fs.existsSync(pluginPath)) {
+                if (!ctx.fs.existsSync(pluginPath)) {
                   await e.reply(`插件 ${target} 不存在`, true)
                   return
                 }
 
                 try {
-                  const plugin = (await jiti.import(pluginPath, { default: true })) as MiokiPlugin
+                  const plugin = (await ctx.jiti.import(pluginPath, { default: true })) as MiokiPlugin
 
                   if (plugin.name !== target) {
                     const tip = `[插件目录名称: ${target}] 和插件代码中设置的 [name: ${plugin.name}] 不一致，可能导致重载异常，请修改后重启。`
@@ -150,7 +152,7 @@ const core: MiokiPlugin = definePlugin({
                   return
                 }
 
-                await updateBotConfig((c) => (c.plugins = [...botConfig.plugins, target]))
+                await ctx.updateBotConfig((c) => (c.plugins = [...ctx.botConfig.plugins, target]))
 
                 await e.reply(`插件 ${target} 启用成功`, true)
 
@@ -177,7 +179,7 @@ const core: MiokiPlugin = definePlugin({
                   break
                 }
 
-                await updateBotConfig((c) => (c.plugins = botConfig.plugins.filter((name) => name !== target)))
+                await ctx.updateBotConfig((c) => (c.plugins = ctx.botConfig.plugins.filter((name) => name !== target)))
 
                 ctx.bot.logger.info(`禁用插件 => ${target}`)
 
@@ -200,9 +202,9 @@ const core: MiokiPlugin = definePlugin({
                     await plugin.disable()
                   }
 
-                  const pluginPath = path.join(getAbsPluginDir(), target)
+                  const pluginPath = ctx.path.join(getAbsPluginDir(), target)
 
-                  if (!fs.existsSync(pluginPath)) {
+                  if (!ctx.fs.existsSync(pluginPath)) {
                     await e.reply(`插件 ${target} 不存在`, true)
                     return
                   }
@@ -212,7 +214,7 @@ const core: MiokiPlugin = definePlugin({
                     // await e.reply(`插件 ${target} 还未启用，尝试直接启用...`, true)
                   }
 
-                  const importedPlugin = (await jiti.import(pluginPath, { default: true })) as MiokiPlugin
+                  const importedPlugin = (await ctx.jiti.import(pluginPath, { default: true })) as MiokiPlugin
 
                   if (importedPlugin.name !== target) {
                     const tip = `插件目录名称: ${target} 和插件代码中设置的 name: ${importedPlugin.name} 不一致，可能导致重载异常，请修改后重启。`
@@ -223,11 +225,11 @@ const core: MiokiPlugin = definePlugin({
                   await enablePlugin(ctx.bot, importedPlugin)
                 } catch (err: any) {
                   await e.reply(err?.message, true)
-                  await updateBotConfig((c) => (c.plugins = c.plugins.filter((name) => name !== target)))
+                  await ctx.updateBotConfig((c) => (c.plugins = c.plugins.filter((name) => name !== target)))
                   break
                 }
 
-                await updateBotConfig((c) => (c.plugins = [...c.plugins, target]))
+                await ctx.updateBotConfig((c) => (c.plugins = [...c.plugins, target]))
 
                 await e.reply(`插件 ${target} 已${isOff ? '直接启用' : '重载'}`, true)
 
@@ -235,13 +237,17 @@ const core: MiokiPlugin = definePlugin({
               }
               default: {
                 await e.reply(
-                  dedent(`
+                  ctx
+                    .dedent(
+                      `
                   〓 🧩 mioki 插件 〓
                   ${displayPrefix}插件 列表
                   ${displayPrefix}插件 启用 <插件 ID>
                   ${displayPrefix}插件 禁用 <插件 ID>
                   ${displayPrefix}插件 重载 <插件 ID>
-                  `).trim(),
+                  `,
+                    )
+                    .trim(),
                 )
                 break
               }
@@ -253,12 +259,16 @@ const core: MiokiPlugin = definePlugin({
             switch (subCmd) {
               case '详情': {
                 await e.reply(
-                  dedent(`
+                  ctx
+                    .dedent(
+                      `
                   〓 设置详情 〓
-                  主人: ${botConfig.owners.join(', ')}
-                  管理: ${botConfig.admins.join(', ').trim()}
-                  启用插件: ${botConfig.plugins.join(', ').trim()}
-                  `).trim(),
+                  主人: ${ctx.botConfig.owners.join(', ')}
+                  管理: ${ctx.botConfig.admins.join(', ').trim()}
+                  启用插件: ${ctx.botConfig.plugins.join(', ').trim()}
+                  `,
+                    )
+                    .trim(),
                 )
                 break
               }
@@ -273,12 +283,12 @@ const core: MiokiPlugin = definePlugin({
                   return
                 }
 
-                if (botConfig.owners.includes(uid)) {
+                if (ctx.botConfig.owners.includes(uid)) {
                   await e.reply(`主人 ${uid} 已存在`, true)
                   return
                 }
 
-                await updateBotConfig((c) => (c.owners = [...c.owners, uid]))
+                await ctx.updateBotConfig((c) => (c.owners = [...c.owners, uid]))
 
                 await e.reply(`已添加主人 ${uid}`, true)
 
@@ -300,14 +310,14 @@ const core: MiokiPlugin = definePlugin({
                   return
                 }
 
-                const idx = botConfig.owners.indexOf(uid)
+                const idx = ctx.botConfig.owners.indexOf(uid)
 
                 if (idx === -1) {
                   await e.reply(`主人 ${uid} 不存在`, true)
                   return
                 }
 
-                await updateBotConfig((c) => c.owners.splice(idx, 1))
+                await ctx.updateBotConfig((c) => c.owners.splice(idx, 1))
 
                 await e.reply(`已删除主人 ${uid}`, true)
 
@@ -323,12 +333,12 @@ const core: MiokiPlugin = definePlugin({
                   return
                 }
 
-                if (botConfig.admins.includes(uid)) {
+                if (ctx.botConfig.admins.includes(uid)) {
                   await e.reply(`管理 ${uid} 已存在`, true)
                   return
                 }
 
-                await updateBotConfig((c) => (c.admins = [...c.admins, uid]))
+                await ctx.updateBotConfig((c) => (c.admins = [...c.admins, uid]))
 
                 await e.reply(`已添加管理 ${uid}`, true)
 
@@ -344,14 +354,14 @@ const core: MiokiPlugin = definePlugin({
                   return
                 }
 
-                const idx = botConfig.admins.indexOf(uid)
+                const idx = ctx.botConfig.admins.indexOf(uid)
 
                 if (idx === -1) {
                   await e.reply(`管理 ${uid} 不存在`, true)
                   return
                 }
 
-                await updateBotConfig((c) => c.admins.splice(idx, 1))
+                await ctx.updateBotConfig((c) => c.admins.splice(idx, 1))
 
                 await e.reply(`已删除管理 ${uid}`, true)
 
@@ -359,12 +369,16 @@ const core: MiokiPlugin = definePlugin({
               }
               default: {
                 await e.reply(
-                  dedent(`
+                  ctx
+                    .dedent(
+                      `
                   〓 ⚙️ mioki 设置 〓
                   ${displayPrefix}设置 详情
                   ${displayPrefix}设置 [加/删]主人 <QQ/AT>
                   ${displayPrefix}设置 [加/删]管理 <QQ/AT>
-                  `).trim(),
+                  `,
+                    )
+                    .trim(),
                 )
                 break
               }

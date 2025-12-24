@@ -8,7 +8,7 @@ export default definePlugin({
     ctx.handle('message.group', async (e) => {
       const text = ctx.text(e)
 
-      ctx.logger.info(`services: ${JSON.stringify(ctx.services)}`)
+      ctx.logger.info(`services: ${Object.keys(ctx.services)}`)
 
       const { QRLogin, qrLogin, loginMiniProgram } = ctx.services.login
 

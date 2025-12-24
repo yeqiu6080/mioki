@@ -21,10 +21,11 @@
       "test",
       "words"
     ],
-    "log_level": "trace",
+    "log_level": "info",
     "plugins_dir": "../plugins",
     "online_push": true,
     "error_push": false,
+    "status_permission": "admin-only",
     "napcat": {
       "protocol": "ws",
       "port": 3333,
